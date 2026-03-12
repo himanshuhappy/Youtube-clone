@@ -12,5 +12,9 @@
     "chai"
   ],
   "author": "himanshu yadav",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "nodemon": "^3.1.14",
+    "prettier": "^3.8.1"
+  }
 }
