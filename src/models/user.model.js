@@ -18,7 +18,7 @@ const userSchema=new Schema({
         lowercase: true,
         trim: true
     },
-    fullname:{
+    fullName:{
         type: String,
         required: true,
         trim: true,
@@ -47,9 +47,8 @@ const userSchema=new Schema({
 },{timestamps:true})
 //password encryption
 userSchema.pre("save",async function (next){
-    if(!this.isModified("password")) return next();
-    this.password=await bcrypt.hash(this.password,10)
-    next()
+    if(!this.isModified("password")) return;
+    this.password=await bcrypt.hash(this.password,10);
 })
 //password check
 userSchema.methods.isPasswordCorrect=async function(password){
@@ -64,7 +63,7 @@ userSchema.methods.generateAccessToken=function(){
         username: this.username,
         fullName:this.fullName
         },
-        process.env.ACESS_TOKEN_SECRET,
+        process.env.ACCESS_TOKEN_SECRET,
         {
             expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
