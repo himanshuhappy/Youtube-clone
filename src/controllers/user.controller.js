@@ -3,6 +3,8 @@ import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { generateAccessAndRefreshTokens } from "../models/user.model.js"
+import jwt from "jsonwebtoken"
 
 const registerUser=asyncHandler(async(req,res)=>{
         //get user detail from frontend/postman
@@ -61,7 +63,9 @@ const registerUser=asyncHandler(async(req,res)=>{
 const loginUser=asyncHandler(async(req,res)=>{
     //get data
     const{email, username, password}=req.body
-    if(!username || !email){
+    console.log(email);
+
+    if(!username && !email){
         throw new ApiError(400,"username or email is required")
     }
     //find user in db from username and email
@@ -126,7 +130,48 @@ const logoutUser= asyncHandler(async(req,res)=>{
     .json(new ApiResponse(200,{},"User logged Out"))
 })
 
+const refreshAccessToken=asyncHandler(async(req,res)=>{
+    const incomingRefreshToken=req.cookies.refreshToken || req.body.refreshToken
+    if(incomingRefreshToken){
+        throw new ApiError(401,"unauthorized request")
+    }
+    //decode token
+    const decodedToken=jwt.verify(
+        incomingRefreshToken,
+        process.env.REFRESH_TOKEN_SECRET
+    )
+    //getting user from id
+    const user=await User.findById(decodedToken?._id)
+    //sending cookies
+    try{
+        const options={
+        httpOnly: true,
+        secure: true
+    }
+
+    const{accessToken,NewRefreshToken}=await
+    generateAccessAndRefreshTokens(user._id)
+
+    return res
+    .status(200)
+    .cookie("accessToken",accessToken,options)
+    .cookie("refreshToken",NewRefreshToken,options)
+    .json(
+        new ApiResponse(
+            200,
+            {accessToken,NewRefreshToken},
+            "Access token refreshed"
+        )
+    )
+    }catch(error){
+        throw new ApiError(401,error?.message || "Invalid refresh token")
+    }
+
+})
+
 export{ 
     registerUser,
-    loginUser
+    loginUser,
+    logoutUser,
+    refreshAccessToken
 }

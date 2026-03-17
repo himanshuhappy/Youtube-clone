@@ -1,6 +1,7 @@
 import mongoose, {Schema} from "mongoose";
-import jwt from "jsonwebtoken"
-import bcrypt from "bcrypt"
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+import{ ApiError } from "../utils/ApiError.js"
 //user model
 const userSchema=new Schema({
     username:{
@@ -45,21 +46,6 @@ const userSchema=new Schema({
         type: String
     }
 },{timestamps:true})
-//generate tokkens
-const generateAccessAndRefreashTokens=async(userId)=>{
-    try{
-        const user=await User.findById(userId)
-        const accessToken = user.generateAccessToken()
-        const refreshToken=user.generateRefreshToken()
-        
-        //save refresh token in mongoose
-        user.refreshToken=refreshToken
-        await user.save({validateBeforeSave: false })
-        return {accessToken, refreshToken}
-    }catch(error){
-        throw new ApiError(500,"Something went wrong while generating referesh and access token")
-    }
-}
 //password encryption
 userSchema.pre("save",async function (next){
     if(!this.isModified("password")) return;
@@ -95,6 +81,21 @@ userSchema.methods.generateRefreshToken=function(){
             expiresIn: process.env.REFRESH_TOKEN_EXPIRY
         }
     )
+}
+//generate tokkens
+export const generateAccessAndRefreshTokens=async(userId)=>{
+    try{
+        const user=await User.findById(userId)
+        const accessToken = user.generateAccessToken()
+        const refreshToken=user.generateRefreshToken()
+        
+        //save refresh token in mongoose
+        user.refreshToken=refreshToken
+        await user.save({validateBeforeSave: false });
+        return {accessToken, refreshToken}
+    }catch(error){
+        throw new ApiError(500,"Something went wrong while generating referesh and access token")
+    }
 }
 
 export const User=mongoose.model("User",userSchema)
