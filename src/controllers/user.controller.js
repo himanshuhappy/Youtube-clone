@@ -88,7 +88,7 @@ const loginUser=asyncHandler(async(req,res)=>{
     //send cookies
     const options={
         httpOnly: true,
-        secure: true
+        secure: false // it worked for http on giving true it will only work for https
     }
 
     return res
@@ -111,8 +111,8 @@ const logoutUser= asyncHandler(async(req,res)=>{
         req.user._id,
         {
             //cookie removed from db
-            $set:{
-                refreshToken: undefined
+            $unset:{
+                refreshToken: 1// this removes the field from document
             }
         },
         {
@@ -122,7 +122,7 @@ const logoutUser= asyncHandler(async(req,res)=>{
 
     const options={
         httpOnly: true,
-        secure: true
+        secure: false
     }
 
     return res
@@ -148,7 +148,7 @@ const refreshAccessToken=asyncHandler(async(req,res)=>{
     try{
         const options={
         httpOnly: true,
-        secure: true
+        secure: false
     }
 
     const{accessToken,NewRefreshToken}=await
@@ -192,7 +192,12 @@ const changeCurrentPassword= asyncHandler(async(req,res)=>{
 const getCurrentUser= asyncHandler(async(req, res)=>{
     return res
     .status(200)
-    .json(200,req.user,"current user fetched successfully")
+    .json(
+        new ApiResponse(200,
+            req.user,
+            "current user fetched successfully"
+        )
+    )
 })
 
 const updateAccountDetails= asyncHandler(async(req,res)=>{
@@ -272,6 +277,11 @@ const updateUserCoverImage = asyncHandler(async(req,res)=>{
 })
 
 const getUserChannelProfile = asyncHandler(async(req, res)=>{
+const { username } = req.params; // ✅ FIX
+
+    if (!username) {
+        throw new ApiError(400, "Username is required");
+    }
 
 
 const channel=await User.aggregate([
@@ -305,11 +315,11 @@ const channel=await User.aggregate([
                 $size: "$subscribers"
             },
             channelsSubscribedToCount:{
-                $size: "$sibscribedTo"
+                $size: "$subscribedTo"
             },
             isSubscribed:{
                 $cond:{
-                    if:{$in: [req.user?._id,"$sibscribers.subscriber"]},
+                    if:{$in: [req.user?._id,"$subscribers.subscriber"]},
                     then: true,
                     else: false
                 }
@@ -342,10 +352,10 @@ return res
 })
 
 const getWatchHistory = asyncHandler(async(req,res)=>{
-    const user = await User.aggeregate([
+    const user = await User.aggregate([
         {
             $match: {
-                _id: new mongoose.Types.ObjectId(req,user._id)
+                _id: new mongoose.Types.ObjectId(req.user._id)
             }
         },
         {
@@ -407,6 +417,6 @@ export{
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile   
-
+    getUserChannelProfile,
+    getWatchHistory
 }
